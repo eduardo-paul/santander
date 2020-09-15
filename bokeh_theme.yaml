@@ -1,0 +1,13 @@
+attrs:
+  Axis:
+    major_label_text_font: 'Computer Modern'
+    axis_label_text_font: 'Computer Modern'
+  Title:
+    text_font: 'Computer Modern'
+    text_font_size: '20px'
+    align: 'center'
+  Legend:
+    label_text_font: 'Computer Modern'
+  Label:
+    text_font: 'Computer Modern'
+    text_font_size: '15px'
