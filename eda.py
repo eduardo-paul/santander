@@ -1,7 +1,6 @@
 #%%
 import re
 from pathlib import Path
-import numpy as np
 import pandas as pd
 from bokeh.io import output_notebook
 from bokeh.models import Span
@@ -12,155 +11,147 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 import eda_tools
 
+pd.options.plotting.backend = "pandas_bokeh"
 output_notebook()
-curdoc().theme = Theme(Path('bokeh_theme.yaml'))
+curdoc().theme = Theme(Path("bokeh_theme.yaml"))
 
 #%%
-data = pd.read_csv(
-    Path('./data/train.csv')
-)
+data = pd.read_csv(Path("./data/train.csv"))
+data.columns = data.columns.str.lower()
+
+# %% [markdown]
+'''
+# Exploração inicial.
+'''
+# %% [markdown]
+'''
+A classificação dos clientes é dada pela variável "target". O valor "1" representa a classe positiva, que neste caso engloba os clientes _insatisfeitos_. O valor "0" então representa a classe negativa, dos clientes _satisfeitos_.
+'''
 
 #%%
-# A classificação dos clientes é dada pela variável TARGET.
-X = data.drop(columns=['TARGET'])
-y = data['TARGET']
+X = data.drop(columns=["target"])
+y = data["target"]
 
+# %% [markdown]
+'''
+O conjunto de dados contém 76_020 linhas (clientes) e 370 colunas (variáveis), sendo que todas as colunas são do tipo float64 (111) ou int64 (259).
+'''
 #%%
 X.info()
-# O conjunto de dados contém 76_020 linhas e 370 colunas, sendo que todas as colunas são do tipo float64 (111) ou int64 (259).
 
+# %% [markdown]
+'''
+Os valores de "id" são todos distintos (como era de se esperar) e não coincidem com o índice da tabela.
+'''
 #%%
-# Os IDs são todos distintos (como era de se esperar) e não coincidem com o índice da tabela.
-print(f"Número de IDs distintos: {X['ID'].nunique()}")
+print(f"Número de 'id' distintos: {X['id'].nunique()}")
 
-coinciding_indices = sum(X['ID'] == X.index)
-print(f'Número de IDs que coincidem com o índice do data frame: {coinciding_indices}')
+coinciding_indices = sum(X["id"] == X.index)
+print(f"Número de 'id' que coincidem com o índice do data frame: {coinciding_indices}")
 
+# %% [markdown]
+'''
+Os índices estão uniformemente distribuídos. Isso provavelmente quer dizer que não são relevantes e podem ser descartados.
+'''
 #%%
-# Os índices estão uniformemente distribuídos. Isso provavelmente quer dizer que não são relevantes e podem ser descartados.
-X['ID'].hist()
-X = X.drop(columns=['ID'])
+X["id"].plot.hist()
+X = X.drop(columns=["id"])
 
+# %% [markdown]
+'''
+Podemos ver que todas as variáveis deste conjunto contêm o termo "var" seguido de um número.
+'''
 #%%
-# Podemos ver que todas as variáveis deste conjunto, com a exceção de "ID" e "TARGET," contêm a palavra "var" seguida de um número.
-vars = re.compile(r'var(\d+)')
 variables = []
-num = 0
-for feature in data.columns:
-    result = re.search(vars, feature)
+no_var = 0
+for feature in X.columns:
+    result = re.search(r"var(\d+)", feature)
     if result is not None:
-        variables.append(
-            int(result.group(1))
-        )
-        num += 1
+        var_number = int(result.group(1))
+        variables.append(var_number)
     else:
-        print(f'{feature} does not contain a "var."\n')
+        print(f"{feature} não contém 'var'.\n")
+        no_var += 1
 else:
     variables = sorted(set(variables))
 
 print(
-    f'Variables present: {variables}\n',
-    f'Number of features containing "var": {num}',
-    sep='\n',
+    f"Variáveis presentes: {variables}\n",
+    f"Número de variáveis básicas no conjunto: {len(variables)}\n",
+    f"Número de variáveis que não são função de 'var#': {no_var}",
+    sep="\n",
 )
 
+# %% [markdown]
+'''
+Também podemos ver a única variável que falta no intervalo que temos é a "var23".
+'''
 #%%
-# Também podemos ver a única variável que falta no intervalo que temos é a var23.
-for idx in range(1, variables[-1]+1):
+for idx in range(1, variables[-1] + 1):
     if idx not in variables:
-        print(f'{idx} is not a variable in the dataset.')
+        print(f"'var{idx}' não é uma variável neste conjunto.")
 
+# %% [markdown]
+'''
+Podemos ver que o conjunto é altamente desbalanceado, tendo apenas cerca de 3008 / 76_020 ~ 4% de clientes insatisfeitos. Com esse nível de desbalanceamento, não será adequado utilizar a acurácia como métrica.
+'''
 #%%
-
-#%%
-# Podemos ver que o conjunto é altamente desbalanceado, tendo apenas cerca de 3008 / 76_020 ~ 4% de clientes insatisfeitos. Com esse nível de desbalanceamento, não será adequado utilizar a acurácia como métrica.
 print(
     f"Número de clientes em cada classe:",
     y.value_counts(),
-    sep='\n',
+    sep="\n",
 )
 
+# %% [markdown]
+'''
+As variáveis desta tabela não tem nomes claros devido à anonimização dos dados. Isso faz com que qualquer intuição a respeito delas seja muito difícil.
+'''
 #%%
-# As variáveis desta tabela não tem nomes claros devido à anonimização dos dados. Isso faz com que qualquer intuição a respeito delas seja muito difícil.
 print(data.columns)
 
+# %% [markdown]
+'''
+Para ter alguma intuição sobre o conjunto de dados, nós podemos verificar a existência de variáveis que apresentem valores constantes para todos os clientes. Essas variáveis podem ser facilmente descartadas, já que não tem poder preditivo.
+'''
 #%%
-# Para ter alguma intuição sobre o conjunto de dados, nós podemos verificar a existência de variáveis que apresentem valores constantes para todos os clientes. Essas variáveis podem ser facilmente descartadas, já que não tem poder preditivo.
+# As transformações do scikit-learn não retornam DataFrames, então é preciso de um pouco de trabalho para manter os nomes das colunas.
+cols = X.columns
+original_len = len(cols)
 const_var = VarianceThreshold()
-data01 = const_var.fit_transform(data)
-num_elim_var = data.shape[1] - data01.shape[1]
-print(f'Número de variáveis eliminadas: {num_elim_var}')
-print(f'Número de variáveis restantes: {data01.shape[1]}')
+const_var.fit(X)
+X = pd.DataFrame(const_var.transform(X))
+X.columns = cols[const_var.get_support()]
+new_len = len(X.columns)
+num_elim_var = original_len - new_len 
+print(f"Número de variáveis eliminadas: {num_elim_var}")
+print(f"Número de variáveis restantes: {new_len}")
+
+# %% [markdown]
+'''
+Como ainda resta um número muito grande de variáveis (335) e elas são de difícil interpretação, podemos buscar quais delas são individualmente relevantes para a tarefa de classificação. Isso pode ser feito facilmente com uma árvore de decisão, utilizando as variáveis uma a uma.
+
+É importante notar que como as classes são desbalanceadas, o modelo não vai conseguir se ajustar bem naturalmente. Por isso devemos especificar que as classes devem receber pesos de maneira inversamente proporcional à sua predominância.
+
+Vamos também utilizar árvores com apenas um nó, para tentar identificar variáveis que façam um divisão binária simples nos dados.
+'''
 
 #%%
-# Como ainda resta um número muito grande de variáveis (337) e elas são de difícil interpretação, podemos buscar quais delas são individualmente relevantes para a tarefa de classificação. Isso pode ser feito facilmente com uma árvore de decisão, utilizando as variáveis uma a uma.
-# É importante notar que como as classes são desbalanceadas, o modelo não vai conseguir se ajustar bem naturalmente. Por isso devemos especificar que as classes devem receber pesos de maneira inversamente proporcional à sua predominância.
-# Vamos também utilizar árvores com apenas um nó, para tentar identificar variáveis que façam um divisão binária simples nos dados.
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=101)
+df, trees = eda_tools.create_trees(X, y, features=X.columns, random_state=101)
 
-tree = DecisionTreeClassifier(
-    class_weight='balanced',
-    max_depth=1,
-    random_state=102,
-)
+df
 
-results = pd.DataFrame(columns=['feature', 'sensitivity', 'specificity', 'roc_auc'])
-for feature in X_train.columns:
-    # Treino.
-    tree.fit(X_train[[feature]], y_train)
-    # Predição.
-    y_pred = tree.predict(X_test[[feature]])
-    # Dicionário com as métricas.
-    report = eda_tools.report(y_test, y_pred)
-    # Acrescentando o nome da variável ao dicionário.
-    report['feature'] = feature
+# %% [markdown]
+'''
+Analisando as árvores de decisão vemos que existem algumas variáveis que aparentam ter uma capacidade de classificação razoável por si só.
 
-    new_row = pd.DataFrame(report)
-    results = results.append(new_row, ignore_index=True)
-else:
-    results = results.sort_values(by='roc_auc', ascending=False)
-
-print(results)
-
+Por exemplo, vamos considerar a variável "saldo\_var30", que é a primeira da lista. O gráfico mostra o percentual acumulado de clientes que possuem um saldo de _até_ o valor representado no eixo x. Podemos ver que os acumulados de clientes dos dois grupos apresentam um salto grande de prevalência em torno do valor 0, mas o grupo insatisfeito aumenta muito mais acentuadamente. Isso significa que temos uma concentração proporcionalmente maior de clientes insatisfeitos. Em outras palavras, clientes insatisfeitos tendem a ter um _saldo menor_.
+'''
 #%%
-# Analisando as árvores de decisão vemos que existem algumas variáveis que aparentam ter uma capacidade de classificação razoável por si só. Vamos analisar as que apresentam a maior área sob a curva ROC.
+feature = df.iloc[0]
+eda_tools.plot_feature_cumsum(X, y, feature["feature"], feature["cutoff"])
 
-num_of_features = 10
-
-best_features = pd.DataFrame(columns=['feature', 'sensitivity', 'specificity', 'roc_auc', 'cutoff'])
-
-trees = {
-    feature: DecisionTreeClassifier(
-        class_weight='balanced',
-        max_depth=1,
-        random_state=102,
-    )
-    for feature in results['feature'][:num_of_features]
-}
-
-for feature in trees:
-    # Treino.
-    trees[feature].fit(X_train[[feature]], y_train)
-    # Predição.
-    y_pred = trees[feature].predict(X_test[[feature]])
-    # Dicionário com as métricas.
-    report = eda_tools.report(y_test, y_pred)
-    # Acrescentando o nome da variável ao dicionário.
-    report['feature'] = feature
-    report['cutoff'] = eda_tools.tree_cutoff(trees[feature])
-
-    new_row = pd.DataFrame(report)
-    best_features = best_features.append(new_row, ignore_index=True)
-else:
-    best_features = best_features.sort_values(by='roc_auc', ascending=False)
-
-print(best_features)
-
+# %% [markdown]
+'''
+Dependendo do objetivo do projeto, uma simples árvore de decisão dessas já poderia ser suficiente. Como o nosso objetivo é alcançar um desempenho de 70%, precisamos buscar um modelo um pouco mais sofisticado.
+'''
 #%%
-# Vamos analisar as primeiras variáveis para buscar alguma intuição sobre elas.
-for idx in range(10):
-    feature = best_features.iloc[idx]
-    eda_tools.plot_feature_cumsum(data, feature['feature'], feature['cutoff']) 
-
-#%%
-# Dentre as primeiras colocadas nesta lista de variáveis, o saldo_var5 apresenta a maior sensibilidade, sem perder muito em termos de especificidade.
