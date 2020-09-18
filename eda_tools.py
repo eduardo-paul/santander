@@ -124,11 +124,11 @@ def get_feature_cumsum(X, y, feature):
     return feature_data
 
 
-def plot_feature_cumsum(X, y, feature, cutoff):
+def plot_feature_cumsum(X, y, feature, cutoff, x_range=(-1, 4)):
     feature_data = get_feature_cumsum(X, y, feature)
 
     p = figure(
-        x_range=(-1, 4),
+        x_range=x_range,
     )
 
     p.line(
