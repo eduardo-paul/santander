@@ -1,12 +1,10 @@
 #%%
 import re
 from pathlib import Path
-import numpy as np
 import pandas as pd
 from bokeh.io import output_notebook
 from bokeh.plotting import curdoc
 from bokeh.themes import Theme
-from dtreeviz.trees import dtreeviz
 from sklearn.feature_selection import VarianceThreshold
 import eda_tools
 
@@ -161,34 +159,6 @@ feature = df.loc[1, :]
 eda_tools.plot_feature_cumsum(
     X, y, feature["feature"], feature["cutoff"], x_range=(5, 60)
 )
-
-#%% [markdown]
-"""
-Visualizando as estruturas das árvores geradas podemos visualizar melhor as decisões tomadas. Por exemplo, na figura abaixo, em que usamos uma mostra contendo 500 clientes em cada classe, podemos ver a diferença na tendência do histograma de cada lado da fronteira de decisão.
-"""
-
-#%%
-indices_to_grab = np.concatenate([np.arange(500), np.arange(-500, 0)])
-tree_data = (
-    data[[feature["feature"], "target"]]
-    .sort_values(by="target")
-    .iloc[indices_to_grab, :]
-)
-
-tree_data["target"].value_counts()
-
-#%%
-feat = "var15"
-viz = dtreeviz(
-    trees[feat],
-    tree_data[[feat]],
-    tree_data["target"],
-    target_name="class",
-    feature_names=[feat],
-    class_names=["0", "1"],
-)
-
-viz.view()
 
 #%% [markdown]
 """

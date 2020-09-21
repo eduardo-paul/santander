@@ -6,6 +6,7 @@ Como vimos na análise exploratória, uma árvore de decisão que considere apen
 
 #%%
 from pathlib import Path
+from pickle import dump
 import pandas as pd
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.metrics import roc_auc_score
@@ -64,7 +65,7 @@ results[
 
 #%% [markdown]
 """
-Analisando a importância das variáveis segundo a árvore de decisão, vemos que de fato as variáveis "var15" (que associamos à idade) e "saldo_var30" são as mais relevantes para a classificação dos clientes.
+A estrutura da árvore de decisão é um pouco grande demais para ser visualizada de maneira conveniente. Apesar disso, analisando a importância das variáveis segundo a árvore, vemos que de fato as variáveis "var15" (que associamos à idade) e "saldo_var30" são de longe as mais relevantes para a classificação dos clientes.
 """
 
 #%%
@@ -98,3 +99,12 @@ submission.to_csv(
     Path("submission.csv"),
     index=False,
 )
+
+#%% [markdown]
+"""
+Serializando o modelo para uso futuro sem a necessidade de recalculá-lo.
+"""
+
+#%%
+with open("modelo_treinado.pkl", "wb") as file:
+    dump(tree, file)
