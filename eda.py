@@ -1,6 +1,5 @@
 #%%
 import re
-from pathlib import Path
 import pandas as pd
 from bokeh.io import output_notebook
 from bokeh.plotting import curdoc
@@ -8,12 +7,11 @@ from bokeh.themes import Theme
 from sklearn.feature_selection import VarianceThreshold
 import eda_tools
 
-pd.options.plotting.backend = "pandas_bokeh"
 output_notebook()
-curdoc().theme = Theme(Path("bokeh_theme.yaml"))
+curdoc().theme = Theme("bokeh_theme.yaml")
 
 #%%
-data = pd.read_csv(Path("./data/train.csv"))
+data = pd.read_csv("./data/train.csv")
 data.columns = data.columns.str.lower()
 
 #%% [markdown]

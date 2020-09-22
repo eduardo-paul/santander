@@ -5,7 +5,6 @@ Como vimos na análise exploratória, uma árvore de decisão que considere apen
 """
 
 #%%
-from pathlib import Path
 from pickle import dump
 import pandas as pd
 from sklearn.feature_selection import VarianceThreshold
@@ -17,7 +16,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.tree import DecisionTreeClassifier
 import eda_tools
 
-data = pd.read_csv(Path("./data/train.csv"))
+data = pd.read_csv("./data/train.csv")
 data.columns = data.columns.str.lower()
 
 X = data.drop(columns=["id", "target"])
@@ -87,7 +86,7 @@ Enviando o arquivo com as previsões para o Kaggle, a área sob a curva ROC no c
 """
 
 #%%
-test_data = pd.read_csv(Path("./data/test.csv"))
+test_data = pd.read_csv("./data/test.csv")
 
 X_test = test_data.drop(columns=["ID"])
 
@@ -96,7 +95,7 @@ predictions = grid_search.best_estimator_.predict(X_test)
 submission = pd.concat([test_data["ID"], pd.Series(predictions, name="TARGET")], axis=1)
 
 submission.to_csv(
-    Path("submission.csv"),
+    "submission.csv",
     index=False,
 )
 
